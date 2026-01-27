@@ -160,9 +160,8 @@
         .race-badge-active { background: #059669; color: white; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3); transform: scale(1.05); font-family: 'Cinzel', serif; }
         .race-badge-inactive { background: rgba(255,255,255,0.7); color: #6b7280; font-family: 'Cinzel', serif; }
 
-        /* --- VISIBLE GLASS ICONS (PREVIOUS) --- */
+        /* --- VISIBLE GLASS ICONS --- */
         .glass-icon {
-            /* Kept for reference but unused in new dock */
             position: relative; display: flex; align-items: center; justify-content: center;
             width: 3.5rem; height: 3.5rem; border-radius: 50%;
             background: linear-gradient(135deg, rgba(236, 253, 245, 0.8), rgba(255, 255, 255, 0.4));
@@ -170,11 +169,46 @@
             border: 1px solid rgba(16, 185, 129, 0.3); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); cursor: pointer; overflow: hidden;
         }
+        .glass-icon::before {
+            content: ''; position: absolute; top: 0; left: -50%; width: 100%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent);
+            transform: skewX(-25deg); transition: 0.6s; pointer-events: none;
+        }
+        .glass-icon:hover { transform: translateY(-4px) scale(1.05); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25); background: linear-gradient(135deg, #ffffff, #d1fae5); border-color: #059669; }
+        .glass-icon:hover::before { left: 150%; }
+        .glass-icon i { font-size: 1.5rem; color: #065f46; transition: color 0.3s; z-index: 10; }
+        .glass-icon.active { background: linear-gradient(135deg, #10b981, #047857); border-color: #34d399; box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4); transform: translateY(-6px); }
+        .glass-icon.active i { color: #ffffff; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2)); }
+        .glass-icon.danger:hover { background: linear-gradient(135deg, #fee2e2, #fecaca); border-color: #ef4444; }
+        .glass-icon.danger:hover i { color: #dc2626; }
         
-        /* --- NEW ANIMATED DOCK STYLES --- */
+        /* Menu Drawer */
+        @keyframes slideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+        .menu-drawer { animation: slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        /* Black Card */
+        .black-card {
+            background: linear-gradient(145deg, #1a1a1a, #0f172a);
+            border-radius: 1.5rem;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        .black-card::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: linear-gradient(transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 5s infinite linear;
+        }
+        
+        /* NEW: Animated Dock Styles */
         .dock-container {
             position: fixed;
-            bottom: 30px; /* Floating slightly up */
+            bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.85);
@@ -275,29 +309,6 @@
             border-radius: 50%;
             background: var(--accent-green);
         }
-        
-        /* Menu Drawer */
-        @keyframes slideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
-        .menu-drawer { animation: slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        
-        /* Black Card */
-        .black-card {
-            background: linear-gradient(145deg, #1a1a1a, #0f172a);
-            border-radius: 1.5rem;
-            color: white;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-            position: relative;
-            overflow: hidden;
-        }
-        .black-card::after {
-            content: '';
-            position: absolute;
-            top: -50%; left: -50%;
-            width: 200%; height: 200%;
-            background: linear-gradient(transparent, rgba(255,255,255,0.1), transparent);
-            transform: rotate(45deg);
-            animation: shimmer 5s infinite linear;
-        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -334,11 +345,11 @@
         };
         const FULL_RACE_DATA = generateRaceData();
 
-        // --- DB HELPER ---
+        // --- DB HELPER (V3 to FORCE RESET) ---
         const DB = {
             getUsers: () => {
                 try {
-                    return JSON.parse(localStorage.getItem('tanala_users_v2') || '{}');
+                    return JSON.parse(localStorage.getItem('tanala_users_v3') || '{}');
                 } catch {
                     return {};
                 }
@@ -366,7 +377,7 @@
                     transactions: [] 
                 };
                 users[uniqueUsername] = newUser;
-                localStorage.setItem('tanala_users_v2', JSON.stringify(users));
+                localStorage.setItem('tanala_users_v3', JSON.stringify(users));
                 return newUser;
             },
             validateUser: (name, password) => {
@@ -380,7 +391,7 @@
                 if(users[username]) {
                     if (!users[username].transactions) users[username].transactions = [];
                     users[username].transactions.unshift(tx); 
-                    localStorage.setItem('tanala_users_v2', JSON.stringify(users));
+                    localStorage.setItem('tanala_users_v3', JSON.stringify(users));
                 }
             },
             getUserData: (username) => {
@@ -909,17 +920,17 @@
         };
 
         const App = () => {
-            const [user, setUser] = useState(localStorage.getItem('tanala_user_v2') ? JSON.parse(localStorage.getItem('tanala_user_v2')) : null);
+            const [user, setUser] = useState(localStorage.getItem('tanala_user_v3') ? JSON.parse(localStorage.getItem('tanala_user_v3')) : null);
             const [menuOpen, setMenuOpen] = useState(false);
             const [showWallet, setShowWallet] = useState(false);
             const [defaultWalletTab, setDefaultWalletTab] = useState('balance');
 
             const handleLogin = (userData) => {
-                localStorage.setItem('tanala_user_v2', JSON.stringify(userData));
+                localStorage.setItem('tanala_user_v3', JSON.stringify(userData));
                 setUser(userData);
             };
             const handleLogout = () => {
-                localStorage.removeItem('tanala_user_v2');
+                localStorage.removeItem('tanala_user_v3');
                 setUser(null);
                 setMenuOpen(false);
             };
