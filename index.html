@@ -240,46 +240,39 @@
         };
         const FULL_RACE_DATA = generateRaceData();
 
-        // --- DB HELPER (UPDATED FOR UNIQUE USERNAME) ---
+        // --- DB HELPER (RESET KEY TO V2) ---
         const DB = {
             getUsers: () => {
                 try {
-                    return JSON.parse(localStorage.getItem('tanala_users') || '{}');
+                    return JSON.parse(localStorage.getItem('tanala_users_v2') || '{}');
                 } catch {
                     return {};
                 }
             },
             saveUser: (user) => {
                 const users = DB.getUsers();
-                // Check if the exact name already exists (unlikely with our logic, but safety first)
                 if (users[user.name]) return false;
+                const uniqueId = 'TAN-' + Math.random().toString(36).substr(2, 4).toUpperCase();
                 
-                // Generate Unique Username: Name + 3 Random Digits
                 const baseName = user.name.trim();
-                let randomSuffix = Math.floor(100 + Math.random() * 900); // 100-999
+                let randomSuffix = Math.floor(100 + Math.random() * 900);
                 let uniqueUsername = `${baseName}${randomSuffix}`;
                 
-                // Ensure uniqueness (simple loop)
                 while(users[uniqueUsername]) {
                     randomSuffix = Math.floor(100 + Math.random() * 900);
                     uniqueUsername = `${baseName}${randomSuffix}`;
                 }
 
-                // Internal ID
-                const uniqueId = 'TAN-' + Math.random().toString(36).substr(2, 4).toUpperCase();
-                
-                // Create user with the NEW unique username as their official name
                 const newUser = { 
                     ...user, 
-                    name: uniqueUsername, // Overwrite name with unique name
-                    originalName: user.name,
+                    name: uniqueUsername, 
+                    originalName: baseName,
                     uniqueId, 
                     balance: 5000, 
                     transactions: [] 
                 };
-                
                 users[uniqueUsername] = newUser;
-                localStorage.setItem('tanala_users', JSON.stringify(users));
+                localStorage.setItem('tanala_users_v2', JSON.stringify(users));
                 return newUser;
             },
             validateUser: (name, password) => {
@@ -293,7 +286,7 @@
                 if(users[username]) {
                     if (!users[username].transactions) users[username].transactions = [];
                     users[username].transactions.unshift(tx); 
-                    localStorage.setItem('tanala_users', JSON.stringify(users));
+                    localStorage.setItem('tanala_users_v2', JSON.stringify(users));
                 }
             },
             getUserData: (username) => {
@@ -785,7 +778,7 @@
                 <div className="pb-28">
                     {/* Header */}
                     <div className="glass-panel sticky top-0 z-50 px-6 py-4 flex justify-between items-center shadow-sm backdrop-blur-md animate-enter">
-                        <div className="flex items-center gap-3"><Logo size="sm" onClick={toggleMenu} /><div><div className="text-[10px] uppercase font-bold text-emerald-800 tracking-widest">Username</div><div className="font-mono font-bold text-sm text-[#022c22]">{user.name}</div></div></div>
+                        <div className="flex items-center gap-3"><Logo size="sm" onClick={toggleMenu} /><div><div className="text-[10px] uppercase font-bold text-emerald-800 tracking-widest">Punter ID</div><div className="font-mono font-bold text-sm text-[#022c22]">{user.uniqueId}</div></div></div>
                         <div className="flex flex-col items-end"><div className="text-[10px] uppercase font-bold text-emerald-800 tracking-widest">Balance</div><div className="font-mono font-bold text-xl text-emerald-600">₹{currentWallet.toLocaleString()}</div></div>
                     </div>
                     <StadiumSelector selected={activeCity} onSelect={(city) => { setActiveCity(city); setActiveRaceNum(1); }} />
@@ -822,18 +815,16 @@
         };
 
         const App = () => {
-            // Lazy initialization for user state
             const [user, setUser] = useState(() => {
                 try {
-                    const stored = localStorage.getItem('tanala_user');
-                    // Check if stored data is JSON or just a string
+                    const stored = localStorage.getItem('tanala_user_v2');
                     if (stored && (stored.startsWith('{') || stored.startsWith('['))) {
                          return JSON.parse(stored);
                     }
                     return null;
                 } catch (e) {
                     console.error("Failed to parse user data", e);
-                    localStorage.removeItem('tanala_user');
+                    localStorage.removeItem('tanala_user_v2');
                     return null;
                 }
             });
@@ -843,11 +834,11 @@
             const [defaultWalletTab, setDefaultWalletTab] = useState('balance');
 
             const handleLogin = (userData) => {
-                localStorage.setItem('tanala_user', JSON.stringify(userData));
+                localStorage.setItem('tanala_user_v2', JSON.stringify(userData));
                 setUser(userData);
             };
             const handleLogout = () => {
-                localStorage.removeItem('tanala_user');
+                localStorage.removeItem('tanala_user_v2');
                 setUser(null);
                 setMenuOpen(false);
             };
