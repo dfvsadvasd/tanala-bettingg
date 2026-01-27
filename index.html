@@ -240,7 +240,7 @@
         };
         const FULL_RACE_DATA = generateRaceData();
 
-        // --- DB HELPER (RESET KEY TO V2) ---
+        // --- DB HELPER ---
         const DB = {
             getUsers: () => {
                 try {
@@ -815,20 +815,7 @@
         };
 
         const App = () => {
-            const [user, setUser] = useState(() => {
-                try {
-                    const stored = localStorage.getItem('tanala_user_v2');
-                    if (stored && (stored.startsWith('{') || stored.startsWith('['))) {
-                         return JSON.parse(stored);
-                    }
-                    return null;
-                } catch (e) {
-                    console.error("Failed to parse user data", e);
-                    localStorage.removeItem('tanala_user_v2');
-                    return null;
-                }
-            });
-            
+            const [user, setUser] = useState(localStorage.getItem('tanala_user_v2') ? JSON.parse(localStorage.getItem('tanala_user_v2')) : null);
             const [menuOpen, setMenuOpen] = useState(false);
             const [showWallet, setShowWallet] = useState(false);
             const [defaultWalletTab, setDefaultWalletTab] = useState('balance');
