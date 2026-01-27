@@ -205,95 +205,64 @@
             animation: shimmer 5s infinite linear;
         }
         
-        /* NEW: Animated Dock Styles */
+        /* --- NEW ANIMATED DOCK STYLES (CENTERED) --- */
         .dock-container {
             position: fixed;
             bottom: 30px;
             left: 50%;
+            /* Strict Center Alignment */
             transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.9);
             box-shadow: 0 20px 50px -10px rgba(0,0,0,0.2), inset 0 0 0 1px rgba(255,255,255,0.5);
-            border-radius: 24px;
+            border-radius: 32px;
             padding: 10px 20px;
             display: flex;
-            align-items: flex-end;
-            gap: 15px;
+            align-items: center; /* Center Vertically */
+            justify-content: center; /* Center Horizontally */
+            gap: 12px;
             z-index: 100;
         }
 
         .dock-item {
             position: relative;
-            width: 50px;
-            height: 50px;
-            border-radius: 16px;
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
             background: linear-gradient(135deg, #ffffff, #f0fdf4);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 22px;
             color: var(--text-secondary);
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             border: 1px solid rgba(255,255,255,0.8);
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             transform-origin: bottom center;
         }
 
         .dock-item:hover {
-            transform: scale(1.4) translateY(-15px);
-            margin: 0 10px;
-            z-index: 10;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+            transform: scale(1.15) translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
             color: var(--accent-green);
             background: #ffffff;
             border-color: var(--accent-green);
+            z-index: 10;
         }
         
-        .dock-item.danger:hover {
-            color: #dc2626;
-            border-color: #dc2626;
-        }
+        .dock-item.danger:hover { color: #dc2626; border-color: #dc2626; }
 
-        /* Tooltip */
         .dock-tooltip {
-            position: absolute;
-            top: -40px;
-            left: 50%;
-            transform: translateX(-50%) scale(0.8);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 10px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            opacity: 0;
-            transition: all 0.2s ease;
-            pointer-events: none;
-            white-space: nowrap;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            position: absolute; top: -35px; left: 50%; transform: translateX(-50%) scale(0.8);
+            background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 6px;
+            font-size: 10px; font-weight: bold; opacity: 0; transition: all 0.2s ease; pointer-events: none;
             font-family: 'Inter', sans-serif;
+            white-space: nowrap;
         }
-        .dock-tooltip::after {
-            content: '';
-            position: absolute;
-            bottom: -4px;
-            left: 50%;
-            transform: translateX(-50%);
-            border-width: 4px;
-            border-style: solid;
-            border-color: rgba(0,0,0,0.8) transparent transparent transparent;
-        }
-
-        .dock-item:hover .dock-tooltip {
-            opacity: 1;
-            transform: translateX(-50%) scale(1);
-            top: -45px;
-        }
+        .dock-item:hover .dock-tooltip { opacity: 1; transform: translateX(-50%) scale(1); top: -40px; }
         
         /* Active Indicator */
         .dock-item.active {
@@ -309,6 +278,39 @@
             border-radius: 50%;
             background: var(--accent-green);
         }
+
+        /* Magic Bento Card - General */
+        .bento-card {
+            background: rgba(255, 255, 255, 0.75); 
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
+            border-radius: 24px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bento-card:hover {
+            transform: scale(1.02) translateY(-4px);
+            box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.95); 
+            z-index: 10;
+        }
+
+        /* --- HERO SPECIFIC BENTO (NO BG CHANGE) --- */
+        .hero-bento {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            /* Background color set via utility classes (bg-emerald-900), no override here */
+        }
+        .hero-bento:hover {
+            transform: scale(1.02) translateY(-4px);
+            box-shadow: 0 25px 60px -10px rgba(6, 78, 59, 0.4);
+            z-index: 10;
+            /* Do NOT change background to white on hover */
+        }
+
     </style>
 </head>
 <body class="min-h-screen">
@@ -345,11 +347,11 @@
         };
         const FULL_RACE_DATA = generateRaceData();
 
-        // --- DB HELPER (V3 to FORCE RESET) ---
+        // --- DB HELPER ---
         const DB = {
             getUsers: () => {
                 try {
-                    return JSON.parse(localStorage.getItem('tanala_users_v3') || '{}');
+                    return JSON.parse(localStorage.getItem('tanala_users_v4') || '{}');
                 } catch {
                     return {};
                 }
@@ -377,7 +379,7 @@
                     transactions: [] 
                 };
                 users[uniqueUsername] = newUser;
-                localStorage.setItem('tanala_users_v3', JSON.stringify(users));
+                localStorage.setItem('tanala_users_v4', JSON.stringify(users));
                 return newUser;
             },
             validateUser: (name, password) => {
@@ -391,7 +393,7 @@
                 if(users[username]) {
                     if (!users[username].transactions) users[username].transactions = [];
                     users[username].transactions.unshift(tx); 
-                    localStorage.setItem('tanala_users_v3', JSON.stringify(users));
+                    localStorage.setItem('tanala_users_v4', JSON.stringify(users));
                 }
             },
             getUserData: (username) => {
@@ -664,7 +666,7 @@
             return (
                 <div className="perspective-1000 w-full flex justify-center p-4">
                     <div 
-                        className="glass-card w-full max-w-[440px] rounded-[40px] overflow-hidden animate-enter relative transition-transform duration-100 ease-out"
+                        className="login-glass-card w-full max-w-[440px] rounded-[40px] overflow-hidden animate-enter relative transition-transform duration-100 ease-out"
                         onMouseMove={handleMouseMove}
                         onMouseLeave={() => setRotation({ x: 0, y: 0 })}
                         style={{ transform: `perspective(1000px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)` }}
@@ -733,11 +735,10 @@
                 <div className="mt-6 px-4 overflow-x-auto no-scrollbar pb-4 animate-enter delay-100">
                     <div className="flex gap-4">
                         {cities.map((city) => (
-                            <div key={city.id} onClick={() => onSelect(city)} className={`relative min-w-[140px] h-[90px] rounded-xl overflow-hidden cursor-pointer transition-all duration-500 ease-out animate-float-idle ${selected.id === city.id ? 'ring-2 ring-amber-500 scale-105 shadow-xl opacity-100' : 'opacity-70 grayscale hover:grayscale-0 hover:opacity-100 hover:scale-105'}`}>
+                            <div key={city.id} onClick={() => onSelect(city)} className={`bento-card relative min-w-[100px] h-[100px] rounded-2xl overflow-hidden cursor-pointer ${selected.id === city.id ? 'ring-2 ring-emerald-500 shadow-xl scale-105' : 'opacity-80 grayscale hover:grayscale-0 hover:opacity-100'}`}>
                                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 to-slate-900 z-0"></div>
                                 <img src={city.img} alt={city.name} className="absolute inset-0 w-full h-full object-cover z-10" onError={(e) => e.target.style.display = 'none'} />
-                                <div className="absolute inset-0 bg-black/40 z-20 flex items-center justify-center"><span className="text-white font-luxury font-bold tracking-wide drop-shadow-md text-sm">{city.name}</span></div>
-                                {selected.id === city.id && (<div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500 z-30 animate-pulse"></div>)}
+                                <div className="absolute inset-0 bg-black/30 hover:bg-black/10 transition-colors z-20 flex items-center justify-center"><span className="text-white font-luxury font-bold text-xs drop-shadow-md">{city.name}</span></div>
                             </div>
                         ))}
                     </div>
@@ -746,17 +747,8 @@
         };
 
         const HorseCard = ({ horse, onClick, delay }) => {
-            const [rotate, setRotate] = useState({ x: 0, y: 0 });
-            const handleMove = (e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
-                setRotate({ x: ((y - centerY) / centerY) * -5, y: ((x - centerX) / centerX) * 5 });
-            };
             return (
-                <div onClick={() => onClick(horse)} onMouseMove={handleMove} onMouseLeave={() => setRotate({ x: 0, y: 0 })} className={`tilt-card glass-panel p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-white/90 transition-all relative overflow-hidden group border border-white/50 animate-enter ${delay}`} style={{ transform: `perspective(1000px) rotateX(${rotate.x}deg) rotateY(${rotate.y}deg)` }}>
+                <div onClick={() => onClick(horse)} className={`bento-card glass-panel p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-white/95 relative overflow-hidden group border border-white/50 animate-enter ${delay}`}>
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none"></div>
                     <div className="flex items-center gap-4 relative z-10">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl shadow-md ${horse.color}`}>{horse.silk}</div>
@@ -883,7 +875,7 @@
                 <div className="pb-28">
                     {/* Header */}
                     <div className="glass-panel sticky top-0 z-50 px-6 py-4 flex justify-between items-center shadow-sm backdrop-blur-md animate-enter">
-                        <div className="flex items-center gap-3"><Logo size="sm" onClick={toggleMenu} /><div><div className="text-[10px] uppercase font-bold text-emerald-800 tracking-widest">Punter ID</div><div className="font-mono font-bold text-sm text-[#022c22]">{user.uniqueId}</div></div></div>
+                        <div className="flex items-center gap-3"><Logo size="sm" onClick={toggleMenu} /><div><div className="text-[10px] uppercase font-bold text-emerald-800 tracking-widest">Username</div><div className="font-mono font-bold text-sm text-[#022c22]">{user.name}</div></div></div>
                         <div className="flex flex-col items-end"><div className="text-[10px] uppercase font-bold text-emerald-800 tracking-widest">Balance</div><div className="font-mono font-bold text-xl text-emerald-600">₹{currentWallet.toLocaleString()}</div></div>
                     </div>
                     <StadiumSelector selected={activeCity} onSelect={(city) => { setActiveCity(city); setActiveRaceNum(1); }} />
@@ -893,7 +885,8 @@
                         </div>
                     </div>
                     <div className="px-6 mt-4 animate-enter delay-300">
-                        <div className="glass-panel p-8 rounded-3xl relative overflow-hidden bg-emerald-900 text-white border-none shadow-2xl group cursor-pointer hover:scale-[1.01] transition-transform duration-700 ease-out">
+                        {/* HERO BENTO (UPDATED) - Use .hero-bento so it doesn't turn white on hover */}
+                        <div className="hero-bento glass-panel p-8 rounded-3xl relative overflow-hidden bg-emerald-900 text-white border-none shadow-2xl group cursor-pointer">
                             <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500 rounded-full blur-[120px] opacity-20 group-hover:opacity-30 transition-opacity"></div>
                             <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                                 <div><div className="flex items-center gap-2 mb-3"><div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div><span className="text-[10px] font-bold uppercase tracking-widest text-red-400">Live • Race {activeRaceNum}</span></div><h2 className="text-4xl font-luxury font-bold italic leading-tight">{activeCity.name}<br/>Royal Derby</h2><p className="text-emerald-200/60 text-xs font-medium mt-2 uppercase tracking-wide font-elegant">1600m • Turf • Soft Ground</p></div>
@@ -920,17 +913,17 @@
         };
 
         const App = () => {
-            const [user, setUser] = useState(localStorage.getItem('tanala_user_v3') ? JSON.parse(localStorage.getItem('tanala_user_v3')) : null);
+            const [user, setUser] = useState(localStorage.getItem('tanala_user_v4') ? JSON.parse(localStorage.getItem('tanala_user_v4')) : null);
             const [menuOpen, setMenuOpen] = useState(false);
             const [showWallet, setShowWallet] = useState(false);
             const [defaultWalletTab, setDefaultWalletTab] = useState('balance');
 
             const handleLogin = (userData) => {
-                localStorage.setItem('tanala_user_v3', JSON.stringify(userData));
+                localStorage.setItem('tanala_user_v4', JSON.stringify(userData));
                 setUser(userData);
             };
             const handleLogout = () => {
-                localStorage.removeItem('tanala_user_v3');
+                localStorage.removeItem('tanala_user_v4');
                 setUser(null);
                 setMenuOpen(false);
             };
