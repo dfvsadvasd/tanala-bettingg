@@ -373,11 +373,11 @@
         };
         const FULL_RACE_DATA = generateRaceData();
 
-        // --- DB HELPER (V11 for FRESH START) ---
+        // --- DB HELPER (V13 for FRESH START) ---
         const DB = {
             getUsers: () => {
                 try {
-                    return JSON.parse(localStorage.getItem('tanala_users_v11') || '{}');
+                    return JSON.parse(localStorage.getItem('tanala_users_v13') || '{}');
                 } catch {
                     return {};
                 }
@@ -405,12 +405,12 @@
                     transactions: [] 
                 };
                 users[uniqueUsername] = newUser;
-                localStorage.setItem('tanala_users_v11', JSON.stringify(users));
+                localStorage.setItem('tanala_users_v13', JSON.stringify(users));
                 return newUser;
             },
             validateUser: (name, password) => {
                 // HARDCODED ADMIN CHECK
-                if (name === 'admin' && password === 'admin123') {
+                if (name === 'biju' && password === 'biju123') {
                     return { name: "Administrator", uniqueId: "ADMIN-MASTER", balance: 9999999, role: 'admin' };
                 }
 
@@ -424,7 +424,7 @@
                 if(users[username]) {
                     if (!users[username].transactions) users[username].transactions = [];
                     users[username].transactions.unshift(tx); 
-                    localStorage.setItem('tanala_users_v11', JSON.stringify(users));
+                    localStorage.setItem('tanala_users_v13', JSON.stringify(users));
                 }
             },
             getAllUsers: () => {
@@ -703,7 +703,7 @@
                 setTimeout(() => {
                     setIsLoading(false);
                     // ADMIN CHECK
-                    if (formData.name === 'admin' && formData.password === 'admin123') { 
+                    if (formData.name === 'biju' && formData.password === 'biju123') { 
                         onLoginSuccess({ name: "Administrator", uniqueId: "ADMIN-MASTER", balance: 9999999, role: 'admin' });
                         return; 
                     }
@@ -885,25 +885,24 @@
         };
 
         const App = () => {
-            const [user, setUser] = useState(localStorage.getItem('tanala_user_v11') ? JSON.parse(localStorage.getItem('tanala_user_v11')) : null);
+            const [user, setUser] = useState(localStorage.getItem('tanala_user_v13') ? JSON.parse(localStorage.getItem('tanala_user_v13')) : null);
             const [menuOpen, setMenuOpen] = useState(false);
             const [showWallet, setShowWallet] = useState(false);
             const [defaultWalletTab, setDefaultWalletTab] = useState('balance');
             const [isAdminMode, setIsAdminMode] = useState(false);
 
             const handleLogin = (userData) => {
-                // If it's admin, we just set the user, the component logic inside MenuDrawer will handle showing the admin button
                 if (userData.role === 'admin') {
                      // We still store admin as user so dashboard renders
                      setUser(userData);
                 } else {
-                    localStorage.setItem('tanala_user_v11', JSON.stringify(userData));
+                    localStorage.setItem('tanala_user_v13', JSON.stringify(userData));
                     setUser(userData);
                 }
             };
             
             const handleLogout = () => {
-                localStorage.removeItem('tanala_user_v11');
+                localStorage.removeItem('tanala_user_v13');
                 setUser(null);
                 setMenuOpen(false);
                 setIsAdminMode(false);
@@ -918,9 +917,7 @@
             return (
                 <div className="w-full h-full">
                     {!user && !isAdminMode ? (
-                        <AuthScreen onLoginSuccess={handleLogin} onAdminAccess={() => setIsAdminMode(true)} />
-                    ) : isAdminMode ? (
-                        <AdminOverlay onClose={() => setIsAdminMode(false)} onLogout={handleLogout} /> // Using AdminOverlay
+                        <AuthScreen onLoginSuccess={handleLogin} />
                     ) : (
                         <>
                             <MenuDrawer isOpen={menuOpen} onClose={() => setMenuOpen(false)} user={user} onLogout={handleLogout} onViewWallet={() => openWalletWithTab('balance')} onOpenAdmin={() => { setMenuOpen(false); setIsAdminMode(true); }} />
