@@ -29,7 +29,7 @@
             --accent-gold: #d97706; 
             --accent-green: #059669; 
             
-            --glass-bg: rgba(255, 255, 255, 0.92); /* Increased Opacity for Solid Feel */
+            --glass-bg: rgba(255, 255, 255, 0.92); 
             --glass-border: rgba(255, 255, 255, 0.95);
             --glass-shadow: 0 40px 100px -12px rgba(0, 0, 0, 0.15), 0 30px 60px -30px rgba(0, 0, 0, 0.1);
             
@@ -69,9 +69,9 @@
 
         /* --- MAGIC BENTO CARD --- */
         .bento-card {
-            background: rgba(255, 255, 255, 0.85); /* Solid enough to prevent double-vision */
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
+            background: rgba(255, 255, 255, 0.75); 
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.9);
             box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
             border-radius: 24px;
@@ -83,7 +83,7 @@
         .bento-card:hover {
             transform: scale(1.02) translateY(-4px);
             box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.2);
-            background: rgba(255, 255, 255, 0.98); 
+            background: rgba(255, 255, 255, 0.95); 
             z-index: 10;
         }
 
@@ -108,7 +108,7 @@
 
         /* Login Card Specifics */
         .login-glass-card {
-            background: rgba(255, 255, 255, 0.90);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(24px);
             border: 1px solid rgba(255, 255, 255, 1);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
@@ -169,13 +169,11 @@
         }
 
         /* --- ANIMATIONS FIXED --- */
-        /* Keyframe starts at 0 opacity */
         @keyframes fadeInUp { 
             from { opacity: 0; transform: translateY(40px); } 
             to { opacity: 1; transform: translateY(0); } 
         }
 
-        /* Use 'both' to apply initial state immediately (preventing flash) */
         .animate-enter { 
             animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; 
         }
@@ -375,11 +373,11 @@
         };
         const FULL_RACE_DATA = generateRaceData();
 
-        // --- DB HELPER (V8 for FRESH START) ---
+        // --- DB HELPER (V11 for FRESH START) ---
         const DB = {
             getUsers: () => {
                 try {
-                    return JSON.parse(localStorage.getItem('tanala_users_v8') || '{}');
+                    return JSON.parse(localStorage.getItem('tanala_users_v11') || '{}');
                 } catch {
                     return {};
                 }
@@ -407,10 +405,15 @@
                     transactions: [] 
                 };
                 users[uniqueUsername] = newUser;
-                localStorage.setItem('tanala_users_v8', JSON.stringify(users));
+                localStorage.setItem('tanala_users_v11', JSON.stringify(users));
                 return newUser;
             },
             validateUser: (name, password) => {
+                // HARDCODED ADMIN CHECK
+                if (name === 'admin' && password === 'admin123') {
+                    return { name: "Administrator", uniqueId: "ADMIN-MASTER", balance: 9999999, role: 'admin' };
+                }
+
                 const users = DB.getUsers();
                 const user = users[name];
                 if (user && user.password === password) return user;
@@ -421,8 +424,27 @@
                 if(users[username]) {
                     if (!users[username].transactions) users[username].transactions = [];
                     users[username].transactions.unshift(tx); 
-                    localStorage.setItem('tanala_users_v8', JSON.stringify(users));
+                    localStorage.setItem('tanala_users_v11', JSON.stringify(users));
                 }
+            },
+            getAllUsers: () => {
+                return Object.values(DB.getUsers());
+            },
+            getSiteStats: () => {
+                 const users = Object.values(DB.getUsers());
+                 let totalRevenue = 0;
+                 let totalPayouts = 0;
+                 
+                 users.forEach(u => {
+                     if(u.transactions) {
+                         u.transactions.forEach(tx => {
+                             if(tx.type === 'BET') totalRevenue += Math.abs(tx.amount);
+                             if(tx.type === 'WIN') totalPayouts += tx.amount;
+                         });
+                     }
+                 });
+                 
+                 return { totalRevenue, totalPayouts, netProfit: totalRevenue - totalPayouts, userCount: users.length };
             },
             getUserData: (username) => {
                 const users = DB.getUsers();
@@ -457,26 +479,7 @@
             return <div className="fixed inset-0 pointer-events-none z-[200]">{particles.map(p => (<div key={p.id} className="confetti" style={{ left: p.left, animationDelay: p.delay, backgroundColor: p.bg }}></div>))}</div>;
         };
 
-        const ClickSpark = () => {
-            const [sparks, setSparks] = useState([]);
-            useEffect(() => {
-                const handleClick = (e) => {
-                    const id = Date.now();
-                    const newParticles = Array.from({ length: 8 }).map((_, i) => {
-                        const angle = (i / 8) * 360; const dist = 30 + Math.random() * 20;
-                        const tx = Math.cos(angle * Math.PI / 180) * dist + 'px'; const ty = Math.sin(angle * Math.PI / 180) * dist + 'px';
-                        return { id: id + i, x: e.clientX, y: e.clientY, tx, ty, color: i % 2 === 0 ? '#d97706' : '#059669' };
-                    });
-                    setSparks(prev => [...prev, ...newParticles]);
-                    setTimeout(() => { setSparks(prev => prev.filter(s => s.id < id)); }, 600);
-                };
-                window.addEventListener('click', handleClick);
-                return () => window.removeEventListener('click', handleClick);
-            }, []);
-            return <>{sparks.map(s => (<div key={s.id} className="spark-particle" style={{ left: s.x, top: s.y, '--tx': s.tx, '--ty': s.ty, backgroundColor: s.color, boxShadow: `0 0 4px ${s.color}` }} />))}</>;
-        };
-
-        const MenuDrawer = ({ isOpen, onClose, user, onLogout, onViewWallet }) => {
+        const MenuDrawer = ({ isOpen, onClose, user, onLogout, onViewWallet, onOpenAdmin }) => {
             if (!isOpen) return null;
             return (
                 <div className="fixed inset-0 z-[100] flex">
@@ -487,6 +490,11 @@
                             <nav className="space-y-2">
                                 <button onClick={onViewWallet} className="w-full text-left p-3 rounded-xl hover:bg-[var(--glass-bg)] flex items-center gap-3 transition-colors"><i className="ph-bold ph-wallet text-xl text-[var(--accent-gold)]"></i><span className="font-bold">My Wallet</span></button>
                                 <button className="w-full text-left p-3 rounded-xl hover:bg-[var(--glass-bg)] flex items-center gap-3 transition-colors opacity-50 cursor-not-allowed"><i className="ph-bold ph-user-gear text-xl"></i><span className="font-bold">Profile Settings</span></button>
+                                
+                                {/* ADMIN BUTTON - ONLY VISIBLE TO ADMIN */}
+                                {user.role === 'admin' && (
+                                    <button onClick={onOpenAdmin} className="w-full text-left p-3 rounded-xl bg-gray-900 text-white flex items-center gap-3 transition-colors mt-6 shadow-lg"><i className="ph-bold ph-shield-check text-xl text-emerald-400"></i><span className="font-bold">Admin Command</span></button>
+                                )}
                             </nav>
                         </div>
                         <button onClick={onLogout} className="w-full py-3 rounded-xl border border-red-500/30 text-red-500 hover:bg-red-500/10 font-bold flex items-center justify-center gap-2"><i className="ph-bold ph-sign-out"></i> Log Out</button>
@@ -495,160 +503,172 @@
             );
         };
 
+        // --- ADMIN DASHBOARD OVERLAY ---
+        const AdminOverlay = ({ onClose, onLogout }) => {
+            const stats = DB.getSiteStats();
+            const allUsers = DB.getAllUsers();
+            const [selectedUser, setSelectedUser] = useState(null);
+
+            return (
+                <div className="fixed inset-0 z-[150] bg-gray-100/90 backdrop-blur-md overflow-y-auto">
+                    <div className="p-6 pb-20 max-w-5xl mx-auto">
+                        <div className="flex justify-between items-center mb-8">
+                             <div>
+                                <h1 className="text-3xl font-luxury font-bold text-emerald-900">Admin Command</h1>
+                                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Master Control Panel</p>
+                             </div>
+                             <button onClick={onClose} className="w-10 h-10 bg-white shadow-md rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500"><i className="ph-bold ph-x text-xl"></i></button>
+                        </div>
+
+                        {/* Stats Grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Revenue</div>
+                                <div className="text-3xl font-mono font-bold text-emerald-600">₹{stats.totalRevenue.toLocaleString()}</div>
+                            </div>
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Payouts</div>
+                                <div className="text-3xl font-mono font-bold text-red-500">₹{stats.totalPayouts.toLocaleString()}</div>
+                            </div>
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Net Profit</div>
+                                <div className={`text-3xl font-mono font-bold ${stats.netProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                    {stats.netProfit >= 0 ? '+' : ''}₹{stats.netProfit.toLocaleString()}
+                                </div>
+                            </div>
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Active Users</div>
+                                <div className="text-3xl font-mono font-bold text-blue-600">{stats.userCount}</div>
+                            </div>
+                        </div>
+
+                        {/* User List */}
+                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 overflow-hidden">
+                            <h2 className="text-lg font-bold font-luxury mb-6 text-gray-800">User Database</h2>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="text-[10px] uppercase text-gray-400 border-b border-gray-200">
+                                        <tr>
+                                            <th className="pb-3 pl-2">User ID</th>
+                                            <th className="pb-3">Username</th>
+                                            <th className="pb-3">Balance</th>
+                                            <th className="pb-3 text-right pr-2">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-sm">
+                                        {allUsers.map(user => (
+                                            <tr key={user.uniqueId} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                                                <td className="py-4 pl-2 font-mono text-gray-500">{user.uniqueId}</td>
+                                                <td className="py-4 font-bold text-gray-800">{user.name}</td>
+                                                <td className="py-4 font-mono font-bold text-emerald-600">₹{user.balance.toLocaleString()}</td>
+                                                <td className="py-4 text-right pr-2">
+                                                    <button onClick={() => setSelectedUser(user)} className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100">View</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        {/* User Detail Modal */}
+                        {selectedUser && (
+                            <div className="fixed inset-0 z-[250] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+                                <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-enter">
+                                    <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                                        <div>
+                                            <h3 className="font-bold text-lg">{selectedUser.name}</h3>
+                                            <div className="font-mono text-xs text-gray-400">{selectedUser.uniqueId}</div>
+                                        </div>
+                                        <button onClick={() => setSelectedUser(null)} className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"><i className="ph-bold ph-x"></i></button>
+                                    </div>
+                                    <div className="p-6 max-h-[60vh] overflow-y-auto">
+                                        <div className="space-y-2">
+                                            {selectedUser.transactions && selectedUser.transactions.length > 0 ? (
+                                                selectedUser.transactions.map((tx, i) => (
+                                                    <div key={i} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                                        <div>
+                                                            <div className="font-bold text-xs">{tx.desc}</div>
+                                                            <div className="text-[10px] text-gray-400">{new Date(tx.date).toLocaleString()}</div>
+                                                        </div>
+                                                        <div className={`font-mono font-bold text-sm ${tx.amount > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                                            {tx.amount > 0 ? '+' : ''}{tx.amount}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="text-center text-gray-400 py-4 text-sm">No transaction history found.</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
         // --- WALLET VIEW ---
         const WalletView = ({ user, onClose, defaultTab = 'balance' }) => {
             const [activeTab, setActiveTab] = useState(defaultTab);
-            
-            // Re-fetch user data to ensure transactions are up to date
             const currentUserData = DB.getUserData(user.name) || user;
 
             return (
                 <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-enter">
                     <div className="glass-panel w-full max-w-md p-0 rounded-3xl relative bg-white overflow-hidden shadow-2xl h-[650px] flex flex-col">
-                        
-                        {/* Header */}
                         <div className="p-6 pb-2">
                             <div className="flex justify-between items-center mb-4">
                                 <h2 className="text-2xl font-luxury font-bold">My Wallet</h2>
-                                {/* NEW: LARGE VISIBLE CLOSE BUTTON */}
-                                <button 
-                                    onClick={onClose} 
-                                    className="w-10 h-10 bg-gray-100 hover:bg-red-500 hover:text-white rounded-full flex items-center justify-center transition-all shadow-md"
-                                >
-                                    <i className="ph-bold ph-x text-xl"></i>
-                                </button>
+                                <button onClick={onClose} className="w-10 h-10 bg-gray-100 hover:bg-red-500 hover:text-white rounded-full flex items-center justify-center transition-all shadow-md"><i className="ph-bold ph-x text-xl"></i></button>
                             </div>
-                            
-                            {/* Black Card */}
                             <div className="black-card p-6 mb-6">
-                                <div className="flex justify-between items-start mb-8">
-                                    <div className="text-amber-500 font-luxury font-bold tracking-widest text-sm">TANALA ELITE</div>
-                                    <i className="ph-fill ph-wifi-high text-white/50"></i>
-                                </div>
+                                <div className="flex justify-between items-start mb-8"><div className="text-amber-500 font-luxury font-bold tracking-widest text-sm">TANALA ELITE</div><i className="ph-fill ph-wifi-high text-white/50"></i></div>
                                 <div className="text-3xl font-mono font-bold tracking-wider text-white">₹{(currentUserData.balance || 0).toLocaleString()}</div>
-                                <div className="flex justify-between items-end mt-4">
-                                    <div className="text-[10px] text-white/60 uppercase tracking-widest">Available Balance</div>
-                                    <div className="font-mono text-sm text-white/80">{currentUserData.uniqueId}</div>
-                                </div>
+                                <div className="flex justify-between items-end mt-4"><div className="text-[10px] text-white/60 uppercase tracking-widest">Available Balance</div><div className="font-mono text-sm text-white/80">{currentUserData.uniqueId}</div></div>
                             </div>
-
-                            {/* Tabs */}
                             <div className="flex p-1 bg-gray-100 rounded-xl">
                                 {['balance', 'deposit', 'withdraw', 'history'].map(tab => (
-                                    <button 
-                                        key={tab}
-                                        onClick={() => setActiveTab(tab)}
-                                        className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all ${activeTab === tab ? 'bg-white shadow text-emerald-800' : 'text-gray-400 hover:text-gray-600'}`}
-                                    >
-                                        {tab === 'balance' ? 'Main' : tab}
-                                    </button>
+                                    <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all ${activeTab === tab ? 'bg-white shadow text-emerald-800' : 'text-gray-400 hover:text-gray-600'}`}>{tab === 'balance' ? 'Main' : tab}</button>
                                 ))}
                             </div>
                         </div>
-
-                        {/* Content Area */}
                         <div className="flex-1 overflow-y-auto p-6 pt-0 no-scrollbar">
                             {activeTab === 'balance' && (
                                 <div className="space-y-3 mt-4 animate-enter">
                                     <button onClick={() => setActiveTab('deposit')} className="w-full p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-between hover:bg-emerald-100 transition-colors group">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white"><i className="ph-bold ph-arrow-down"></i></div>
-                                            <div className="text-left">
-                                                <div className="font-bold text-emerald-900">Add Funds</div>
-                                                <div className="text-[10px] text-emerald-700">UPI / QR / Bank</div>
-                                            </div>
-                                        </div>
-                                        <i className="ph-bold ph-caret-right text-emerald-400 group-hover:translate-x-1 transition-transform"></i>
+                                        <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white"><i className="ph-bold ph-arrow-down"></i></div><div className="text-left"><div className="font-bold text-emerald-900">Add Funds</div><div className="text-[10px] text-emerald-700">UPI / QR / Bank</div></div></div><i className="ph-bold ph-caret-right text-emerald-400 group-hover:translate-x-1 transition-transform"></i>
                                     </button>
                                     <button onClick={() => setActiveTab('withdraw')} className="w-full p-4 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-between hover:bg-gray-100 transition-colors group">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-white"><i className="ph-bold ph-arrow-up"></i></div>
-                                            <div className="text-left">
-                                                <div className="font-bold text-gray-900">Withdraw</div>
-                                                <div className="text-[10px] text-gray-500">To Bank Account</div>
-                                            </div>
-                                        </div>
-                                        <i className="ph-bold ph-caret-right text-gray-400 group-hover:translate-x-1 transition-transform"></i>
+                                        <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-white"><i className="ph-bold ph-arrow-up"></i></div><div className="text-left"><div className="font-bold text-gray-900">Withdraw</div><div className="text-[10px] text-gray-500">To Bank Account</div></div></div><i className="ph-bold ph-caret-right text-gray-400 group-hover:translate-x-1 transition-transform"></i>
                                     </button>
                                 </div>
                             )}
-
                             {activeTab === 'deposit' && (
                                 <div className="animate-enter mt-2 text-center">
                                     <p className="text-xs text-gray-500 mb-6 font-elegant">Scan to pay instantly</p>
-                                    <div className="inline-block p-2 bg-white rounded-2xl shadow-lg border border-gray-100 mb-6">
-                                        {/* Use the specified image filename for QR code */}
-                                        <img src="WhatsApp%20Image%202026-01-28%20at%202.29.15%20PM.jpeg" 
-                                             alt="QR" 
-                                             className="rounded-xl w-48 h-48 object-cover mx-auto" 
-                                             onError={(e) => {
-                                                 e.target.onerror = null; 
-                                                 e.target.src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=bijugeorge-mail.com@okhdfcbank";
-                                             }}
-                                        />
-                                    </div>
-                                    <div className="bg-gray-50 p-3 rounded-xl flex items-center justify-between border border-gray-200 mb-6">
-                                        <span className="font-mono text-sm text-gray-600">bijugeorge-mail.com@okhdfcbank</span>
-                                        <button className="text-xs font-bold text-emerald-600 uppercase">Copy</button>
-                                    </div>
-                                    <div className="space-y-3 text-left">
-                                        <label className="text-[10px] font-bold uppercase text-gray-400">Amount Paid</label>
-                                        <input type="number" className="naked-input bg-gray-50 rounded-lg" placeholder="5000" />
-                                        <label className="text-[10px] font-bold uppercase text-gray-400">UTR / Ref No.</label>
-                                        <input type="text" className="naked-input bg-gray-50 rounded-lg" placeholder="1234567890" />
-                                    </div>
+                                    <div className="inline-block p-2 bg-white rounded-2xl shadow-lg border border-gray-100 mb-6"><img src="WhatsApp%20Image%202026-01-28%20at%202.29.15%20PM.jpeg" alt="QR" className="rounded-xl w-48 h-48 object-cover mx-auto" onError={(e) => { e.target.onerror = null; e.target.src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=bijugeorge-mail.com@okhdfcbank"; }} /></div>
+                                    <div className="bg-gray-50 p-3 rounded-xl flex items-center justify-between border border-gray-200 mb-6"><span className="font-mono text-sm text-gray-600">bijugeorge-mail.com@okhdfcbank</span><button className="text-xs font-bold text-emerald-600 uppercase">Copy</button></div>
+                                    <div className="space-y-3 text-left"><label className="text-[10px] font-bold uppercase text-gray-400">Amount Paid</label><input type="number" className="naked-input bg-gray-50 rounded-lg" placeholder="5000" /><label className="text-[10px] font-bold uppercase text-gray-400">UTR / Ref No.</label><input type="text" className="naked-input bg-gray-50 rounded-lg" placeholder="1234567890" /></div>
                                     <button className="w-full mt-6 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-lg font-luxury">Submit Request</button>
                                 </div>
                             )}
-
                             {activeTab === 'withdraw' && (
                                 <div className="animate-enter mt-4 space-y-4">
-                                    <div>
-                                        <label className="text-[10px] font-bold uppercase text-gray-400">Withdraw Amount</label>
-                                        <input type="number" className="naked-input bg-gray-50 rounded-lg text-2xl font-mono" placeholder="0.00" />
-                                        <div className="text-right text-[10px] text-gray-400 mt-1">Max: ₹{(user.balance || 0)}</div>
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold uppercase text-gray-400">UPI ID / Bank Acct</label>
-                                        <input type="text" className="naked-input bg-gray-50 rounded-lg" placeholder="user@upi" />
-                                    </div>
-                                    <div className="p-3 bg-amber-50 text-amber-800 text-xs rounded-lg border border-amber-100 font-elegant">
-                                        <i className="ph-bold ph-info mr-1"></i> Withdrawals are processed within 24 hours.
-                                    </div>
+                                    <div><label className="text-[10px] font-bold uppercase text-gray-400">Withdraw Amount</label><input type="number" className="naked-input bg-gray-50 rounded-lg text-2xl font-mono" placeholder="0.00" /><div className="text-right text-[10px] text-gray-400 mt-1">Max: ₹{(user.balance || 0)}</div></div>
+                                    <div><label className="text-[10px] font-bold uppercase text-gray-400">UPI ID / Bank Acct</label><input type="text" className="naked-input bg-gray-50 rounded-lg" placeholder="user@upi" /></div>
+                                    <div className="p-3 bg-amber-50 text-amber-800 text-xs rounded-lg border border-amber-100 font-elegant"><i className="ph-bold ph-info mr-1"></i> Withdrawals are processed within 24 hours.</div>
                                     <button className="w-full py-4 bg-gray-900 text-white font-bold rounded-xl shadow-lg font-luxury">Request Payout</button>
                                 </div>
                             )}
-
                             {activeTab === 'history' && (
                                 <div className="animate-enter mt-2 space-y-3">
-                                    {(currentUserData.transactions && currentUserData.transactions.length > 0) ? (
-                                        currentUserData.transactions.map((tx, i) => (
-                                            <div key={i} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100 hover:bg-white hover:shadow-sm transition-all">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white ${tx.type === 'WIN' ? 'bg-emerald-500' : (tx.type === 'BET' ? 'bg-gray-800' : 'bg-blue-500')}`}>
-                                                        <i className={`ph-bold ${tx.type === 'WIN' ? 'ph-trophy' : (tx.type === 'BET' ? 'ph-receipt' : 'ph-wallet')}`}></i>
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-bold text-sm text-gray-800">{tx.desc}</div>
-                                                        <div className="text-[10px] text-gray-400 font-mono">{new Date(tx.date).toLocaleDateString()} • {new Date(tx.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className={`font-mono font-bold ${tx.amount > 0 ? 'text-emerald-600' : 'text-gray-900'}`}>
-                                                        {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
-                                                    </div>
-                                                    <div className={`text-[9px] font-bold uppercase ${tx.type === 'WIN' ? 'text-emerald-500' : 'text-gray-400'}`}>
-                                                        {tx.type}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center py-10 opacity-50">
-                                            <i className="ph-duotone ph-receipt text-4xl mb-2 text-gray-400"></i>
-                                            <div className="text-sm font-elegant text-gray-500">No transactions found</div>
+                                    {(currentUserData.transactions && currentUserData.transactions.length > 0) ? (currentUserData.transactions.map((tx, i) => (
+                                        <div key={i} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100 hover:bg-white hover:shadow-sm transition-all">
+                                            <div className="flex items-center gap-3"><div className={`w-8 h-8 rounded-full flex items-center justify-center text-white ${tx.type === 'WIN' ? 'bg-emerald-500' : (tx.type === 'BET' ? 'bg-gray-800' : 'bg-blue-500')}`}><i className={`ph-bold ${tx.type === 'WIN' ? 'ph-trophy' : (tx.type === 'BET' ? 'ph-receipt' : 'ph-wallet')}`}></i></div><div><div className="font-bold text-sm text-gray-800">{tx.desc}</div><div className="text-[10px] text-gray-400 font-mono">{new Date(tx.date).toLocaleDateString()} • {new Date(tx.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div></div></div>
+                                            <div className="text-right"><div className={`font-mono font-bold ${tx.amount > 0 ? 'text-emerald-600' : 'text-gray-900'}`}>{tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}</div><div className={`text-[9px] font-bold uppercase ${tx.type === 'WIN' ? 'text-emerald-500' : 'text-gray-400'}`}>{tx.type}</div></div>
                                         </div>
-                                    )}
+                                    ))) : (<div className="flex flex-col items-center justify-center py-10 opacity-50"><i className="ph-duotone ph-receipt text-4xl mb-2 text-gray-400"></i><div className="text-sm font-elegant text-gray-500">No transactions found</div></div>)}
                                 </div>
                             )}
                         </div>
@@ -657,7 +677,7 @@
             );
         };
 
-        // --- AUTH SCREEN (WHITE GLASS) ---
+        // --- AUTH SCREEN ---
         const AuthScreen = ({ onLoginSuccess }) => {
             const [view, setView] = useState('login'); 
             const [isLoading, setIsLoading] = useState(false);
@@ -682,77 +702,38 @@
                 e.preventDefault(); setIsLoading(true); setError('');
                 setTimeout(() => {
                     setIsLoading(false);
+                    // ADMIN CHECK
+                    if (formData.name === 'admin' && formData.password === 'admin123') { 
+                        onLoginSuccess({ name: "Administrator", uniqueId: "ADMIN-MASTER", balance: 9999999, role: 'admin' });
+                        return; 
+                    }
+
                     if (view === 'login') {
                         const user = DB.validateUser(formData.name, formData.password);
                         if (user) onLoginSuccess(user); else setError("Invalid Username or Password.");
                     } else {
                         if (!formData.name || !formData.password || !formData.dob) { setError("Please complete all fields."); return; }
-                        // FIXED SIGNUP BUG: Now passing the returned user object
                         const newUser = DB.saveUser(formData);
-                        if (newUser) { 
-                            alert(`Membership Created!\nYour Login ID is: ${newUser.name}`);
-                            onLoginSuccess(newUser); 
-                        } else {
-                            setError("Username already taken.");
-                        }
+                        if (newUser) { alert(`Membership Created!\nYour Login ID is: ${newUser.name}`); onLoginSuccess(newUser); } else { setError("Username already taken."); }
                     }
                 }, 1000);
             };
 
             return (
                 <div className="perspective-1000 w-full flex justify-center p-4">
-                    <div 
-                        className="login-glass-card w-full max-w-[440px] rounded-[40px] overflow-hidden animate-enter relative transition-transform duration-100 ease-out"
-                        onMouseMove={handleMouseMove}
-                        onMouseLeave={() => setRotation({ x: 0, y: 0 })}
-                        style={{ transform: `perspective(1000px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)` }}
-                    >
+                    <div className="login-glass-card w-full max-w-[440px] rounded-[40px] overflow-hidden animate-enter relative transition-transform duration-100 ease-out" onMouseMove={handleMouseMove} onMouseLeave={() => setRotation({ x: 0, y: 0 })} style={{ transform: `perspective(1000px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)` }}>
                         <div className="absolute inset-0 pointer-events-none z-0" style={{ background: `radial-gradient(600px circle at ${mousePos.x}px ${mousePos.y}px, rgba(255, 255, 255, 0.4), transparent 40%)` }}></div>
                         <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 via-yellow-400 to-emerald-500 z-10"></div>
-
                         <div className="p-10 md:p-12 relative z-10">
-                            <div className="text-center mb-10 animate-enter delay-100">
-                                <Logo size="md" />
-                                <h1 className="text-4xl font-luxury font-bold mt-4 text-[#022c22] tracking-tight">Tanala</h1>
-                                <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-amber-600 mt-2 font-luxury">Premium Betting</p>
-                            </div>
-
+                            <div className="text-center mb-10 animate-enter delay-100"><Logo size="md" /><h1 className="text-4xl font-luxury font-bold mt-4 text-[#022c22] tracking-tight">Tanala</h1><p className="text-[10px] uppercase tracking-[0.3em] font-bold text-amber-600 mt-2 font-luxury">Premium Betting</p></div>
                             <form onSubmit={handleSubmit} className="space-y-6">
-                                <div className="relative group animate-enter delay-200">
-                                    <i className="ph ph-user absolute left-0 top-4 text-emerald-800/50 text-lg group-focus-within:text-emerald-800 transition-colors duration-300"></i>
-                                    <input type="text" name="name" placeholder="Username / Handle" className="naked-input" value={formData.name} onChange={handleChange} />
-                                </div>
-                                {view === 'signup' && (
-                                    <div className="relative group animate-enter delay-200">
-                                        <i className="ph ph-calendar absolute left-0 top-4 text-emerald-800/50 text-lg group-focus-within:text-emerald-800 transition-colors duration-300"></i>
-                                        <input type="date" name="dob" className="naked-input text-emerald-800" value={formData.dob} onChange={handleChange} />
-                                    </div>
-                                )}
-                                <div className="relative group animate-enter delay-300">
-                                    <i className="ph ph-lock-key absolute left-0 top-4 text-emerald-800/50 text-lg group-focus-within:text-emerald-800 transition-colors duration-300"></i>
-                                    <input type="password" name="password" placeholder="Password" className="naked-input" value={formData.password} onChange={handleChange} />
-                                </div>
+                                <div className="relative group animate-enter delay-200"><i className="ph ph-user absolute left-0 top-4 text-emerald-800/50 text-lg group-focus-within:text-emerald-800 transition-colors duration-300"></i><input type="text" name="name" placeholder="Username / Handle" className="naked-input" value={formData.name} onChange={handleChange} /></div>
+                                {view === 'signup' && (<div className="relative group animate-enter delay-200"><i className="ph ph-calendar absolute left-0 top-4 text-emerald-800/50 text-lg group-focus-within:text-emerald-800 transition-colors duration-300"></i><input type="date" name="dob" className="naked-input text-emerald-800" value={formData.dob} onChange={handleChange} /></div>)}
+                                <div className="relative group animate-enter delay-300"><i className="ph ph-lock-key absolute left-0 top-4 text-emerald-800/50 text-lg group-focus-within:text-emerald-800 transition-colors duration-300"></i><input type="password" name="password" placeholder="Password" className="naked-input" value={formData.password} onChange={handleChange} /></div>
                                 {error && <div className="text-red-600 text-xs font-bold text-center animate-pulse bg-red-100 p-2 rounded">{error}</div>}
-                                <div className="animate-enter delay-400">
-                                    <button type="submit" disabled={isLoading} className="w-full py-4 mt-6 btn-shimmer text-white font-bold text-xs uppercase tracking-widest rounded-xl shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 relative overflow-hidden group font-luxury">
-                                        {isLoading ? <i className="ph ph-spinner animate-spin text-xl"></i> : <><span className="relative z-10">{view === 'login' ? 'Enter' : 'Create Identity'}</span><i className="ph-bold ph-arrow-right relative z-10 group-hover:translate-x-1 transition-transform"></i></>}
-                                    </button>
-                                </div>
+                                <div className="animate-enter delay-400"><button type="submit" disabled={isLoading} className="w-full py-4 mt-6 btn-shimmer text-white font-bold text-xs uppercase tracking-widest rounded-xl shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 relative overflow-hidden group font-luxury">{isLoading ? <i className="ph ph-spinner animate-spin text-xl"></i> : <><span className="relative z-10">{view === 'login' ? 'Enter' : 'Create Identity'}</span><i className="ph-bold ph-arrow-right relative z-10 group-hover:translate-x-1 transition-transform"></i></>}</button></div>
                             </form>
-
-                            <div className="mt-8 text-center animate-enter delay-500">
-                                {view === 'login' ? (
-                                    <p className="text-xs text-gray-500 font-medium font-elegant">New Member? <button onClick={() => { setView('signup'); setError(''); }} className="ml-2 font-bold text-amber-600 hover:text-amber-700 underline underline-offset-4 transition-colors">Join Club</button></p>
-                                ) : (
-                                    <p className="text-xs text-gray-500 font-medium font-elegant">Already a member? <button onClick={() => { setView('login'); setError(''); }} className="ml-2 font-bold text-emerald-800 hover:text-emerald-950 underline underline-offset-4 transition-colors">Log In</button></p>
-                                )}
-                            </div>
-
-                            <div className="mt-6 text-center animate-enter delay-500">
-                                <button onClick={() => onLoginSuccess({name: "Administrator", uniqueId: "ADMIN-001", balance: 999999, transactions: []})} className="text-[10px] uppercase font-bold tracking-widest text-gray-400 hover:text-emerald-800 transition-colors flex items-center justify-center gap-1 mx-auto font-luxury">
-                                    <i className="ph-bold ph-lightning"></i> Quick Admin Access
-                                </button>
-                            </div>
+                            <div className="mt-8 text-center animate-enter delay-500">{view === 'login' ? (<p className="text-xs text-gray-500 font-medium font-elegant">New Member? <button onClick={() => { setView('signup'); setError(''); }} className="ml-2 font-bold text-amber-600 hover:text-amber-700 underline underline-offset-4 transition-colors">Join Club</button></p>) : (<p className="text-xs text-gray-500 font-medium font-elegant">Already a member? <button onClick={() => { setView('login'); setError(''); }} className="ml-2 font-bold text-emerald-800 hover:text-emerald-950 underline underline-offset-4 transition-colors">Log In</button></p>)}</div>
                         </div>
                     </div>
                 </div>
@@ -761,20 +742,13 @@
 
         // --- DASHBOARD COMPONENTS ---
         const StadiumSelector = ({ selected, onSelect }) => {
-            const cities = [
-                { id: 'mumbai', name: 'Mumbai', img: 'stadium_mumbai.jpg' }, { id: 'pune', name: 'Pune', img: 'stadium_pune.jpg' },
-                { id: 'calcutta', name: 'Calcutta', img: 'stadium_calcutta.jpg' }, { id: 'bangalore', name: 'Bangalore', img: 'stadium_bangalore.jpg' },
-                { id: 'delhi', name: 'Delhi', img: 'stadium_delhi.jpg' }, { id: 'mysore', name: 'Mysore', img: 'stadium_mysore.jpg' },
-                { id: 'hyderabad', name: 'Hyderabad', img: 'stadium_hyd.jpg' },
-            ];
+            const cities = [{ id: 'mumbai', name: 'Mumbai', img: 'stadium_mumbai.jpg' }, { id: 'pune', name: 'Pune', img: 'stadium_pune.jpg' }, { id: 'calcutta', name: 'Calcutta', img: 'stadium_calcutta.jpg' }, { id: 'bangalore', name: 'Bangalore', img: 'stadium_bangalore.jpg' }, { id: 'delhi', name: 'Delhi', img: 'stadium_delhi.jpg' }, { id: 'mysore', name: 'Mysore', img: 'stadium_mysore.jpg' }, { id: 'hyderabad', name: 'Hyderabad', img: 'stadium_hyd.jpg' }];
             return (
                 <div className="mt-6 px-4 overflow-x-auto no-scrollbar pb-4 animate-enter delay-100">
                     <div className="flex gap-4">
                         {cities.map((city) => (
                             <div key={city.id} onClick={() => onSelect(city)} className={`bento-card relative min-w-[100px] h-[100px] rounded-2xl overflow-hidden cursor-pointer ${selected.id === city.id ? 'ring-2 ring-emerald-500 shadow-xl scale-105' : 'opacity-80 grayscale hover:grayscale-0 hover:opacity-100 hover:scale-105'}`}>
-                                <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 to-slate-900 z-0"></div>
-                                <img src={city.img} alt={city.name} className="absolute inset-0 w-full h-full object-cover z-10" onError={(e) => e.target.style.display = 'none'} />
-                                <div className="absolute inset-0 bg-black/30 hover:bg-black/10 transition-colors z-20 flex items-center justify-center"><span className="text-white font-luxury font-bold text-xs drop-shadow-md">{city.name}</span></div>
+                                <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 to-slate-900 z-0"></div><img src={city.img} alt={city.name} className="absolute inset-0 w-full h-full object-cover z-10" onError={(e) => e.target.style.display = 'none'} /><div className="absolute inset-0 bg-black/30 hover:bg-black/10 transition-colors z-20 flex items-center justify-center"><span className="text-white font-luxury font-bold text-xs drop-shadow-md">{city.name}</span></div>
                             </div>
                         ))}
                     </div>
@@ -783,22 +757,10 @@
         };
 
         const HorseCard = ({ horse, onClick, delay }) => {
-            const [rotate, setRotate] = useState({ x: 0, y: 0 });
-            const handleMove = (e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
-                setRotate({ x: ((y - centerY) / centerY) * -5, y: ((x - centerX) / centerX) * 5 });
-            };
             return (
-                <div onClick={() => onClick(horse)} onMouseMove={handleMove} onMouseLeave={() => setRotate({ x: 0, y: 0 })} className={`tilt-card glass-panel p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-white/90 transition-all relative overflow-hidden group border border-white/50 animate-enter ${delay}`} style={{ transform: `perspective(1000px) rotateX(${rotate.x}deg) rotateY(${rotate.y}deg)` }}>
+                <div onClick={() => onClick(horse)} className={`bento-card glass-panel p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-white/95 relative overflow-hidden group border border-white/50 animate-enter ${delay}`}>
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none"></div>
-                    <div className="flex items-center gap-4 relative z-10">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl shadow-md ${horse.color}`}>{horse.silk}</div>
-                        <div><h4 className="font-bold text-[#022c22] text-lg leading-tight group-hover:text-emerald-700 transition-colors font-luxury">{horse.name}</h4><div className="text-[10px] font-bold text-emerald-600 mt-1 uppercase tracking-wide font-mono">Jockey: {horse.jockey}</div></div>
-                    </div>
+                    <div className="flex items-center gap-4 relative z-10"><div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl shadow-md ${horse.color}`}>{horse.silk}</div><div><h4 className="font-bold text-[#022c22] text-lg leading-tight group-hover:text-emerald-700 transition-colors font-luxury">{horse.name}</h4><div className="text-[10px] font-bold text-emerald-600 mt-1 uppercase tracking-wide font-mono">Jockey: {horse.jockey}</div></div></div>
                     <div className="flex flex-col items-end relative z-10"><div className="bg-amber-50 border border-amber-200 px-3 py-1 rounded-lg"><span className="font-mono font-black text-xl text-amber-700">{horse.odds}x</span></div><span className="text-[9px] text-emerald-800/60 font-bold mt-1 uppercase">Odds</span></div>
                 </div>
             );
@@ -829,45 +791,14 @@
                 <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center text-white">
                     {status === "RESULT" && winner?.id === bet.horse.id && <ConfettiExplosion />}
                     <div className="absolute top-8 w-full flex justify-between px-8 z-50"><div className="flex items-center gap-2"><div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div><span className="font-mono text-sm tracking-widest text-emerald-500">LIVE FEED</span></div><div className="flex items-center gap-4"><div className="font-serif italic text-white/50 hidden sm:block">Derby Live • 1600m</div><button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center transition-all text-white" title="Close & Return to Dashboard"><i className="ph-bold ph-x"></i></button></div></div>
-                    {/* TV STYLE BROADCAST FRAME */}
                     <div className="w-full max-w-4xl px-4 relative z-10">
-                        {/* Video Container */}
                         <div className="relative aspect-video rounded-3xl overflow-hidden shadow-2xl border-4 border-gray-900 bg-black">
-                            {/* LIVE BADGE OVERLAY */}
-                            <div className="absolute top-4 left-4 z-20 bg-red-600 text-white px-3 py-1 text-xs font-bold rounded flex items-center gap-2 animate-pulse">
-                                <div className="w-2 h-2 bg-white rounded-full"></div> LIVE
-                            </div>
-                            
-                            {/* Generic Horse Race Loop (Simulated Stream) */}
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                {/* Using a high-quality placeholder image with a 'Play' overlay to simulate a paused video or loading stream */}
-                                <div className="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center text-white">
-                                    <i className="ph-fill ph-video-camera-slash text-6xl opacity-50 mb-4"></i>
-                                    <h3 className="text-xl font-bold tracking-widest">LIVE SIGNAL CONNECTING...</h3>
-                                    <p className="text-xs text-gray-500 mt-2">Race in Progress</p>
-                                </div>
-                            </div>
-
-                            {/* Center Action Button */}
-                            <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
-                                <a 
-                                    href="https://t.me/tanala_official" 
-                                    target="_blank" 
-                                    className="pointer-events-auto bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-full font-bold shadow-lg flex items-center gap-3 transition-transform hover:scale-105"
-                                >
-                                    <i className="ph-bold ph-telegram-logo text-2xl"></i>
-                                    Watch Live Stream
-                                </a>
-                            </div>
+                            <div className="absolute top-4 left-4 z-20 bg-red-600 text-white px-3 py-1 text-xs font-bold rounded flex items-center gap-2 animate-pulse"><div className="w-2 h-2 bg-white rounded-full"></div> LIVE</div>
+                            <div className="absolute inset-0 flex items-center justify-center"><div className="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center text-white"><i className="ph-fill ph-video-camera-slash text-6xl opacity-50 mb-4"></i><h3 className="text-xl font-bold tracking-widest">LIVE SIGNAL CONNECTING...</h3><p className="text-xs text-gray-500 mt-2">Race in Progress</p></div></div>
+                            <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none"><a href="https://t.me/tanala_official" target="_blank" className="pointer-events-auto bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-full font-bold shadow-lg flex items-center gap-3 transition-transform hover:scale-105"><i className="ph-bold ph-telegram-logo text-2xl"></i>Watch Live Stream</a></div>
                         </div>
-
-                        {/* Race Info Bar */}
-                        <div className="mt-6 text-center text-white space-y-2">
-                             <h2 className="text-3xl font-black font-luxury italic tracking-wider">RACE IN PROGRESS</h2>
-                             <p className="text-emerald-400 font-mono text-sm uppercase tracking-widest">Your Pick: {bet.horse.name}</p>
-                        </div>
+                        <div className="mt-6 text-center text-white space-y-2"><h2 className="text-3xl font-black font-luxury italic tracking-wider">RACE IN PROGRESS</h2><p className="text-emerald-400 font-mono text-sm uppercase tracking-widest">Your Pick: {bet.horse.name}</p></div>
                     </div>
-
                     {status === "RESULT" && (
                         <div className="absolute inset-0 z-50 bg-black/80 flex flex-col items-center justify-center animate-enter">
                             <h1 className="text-6xl font-luxury font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400">{winner.name}</h1>
@@ -954,19 +885,28 @@
         };
 
         const App = () => {
-            const [user, setUser] = useState(localStorage.getItem('tanala_user_v6') ? JSON.parse(localStorage.getItem('tanala_user_v6')) : null);
+            const [user, setUser] = useState(localStorage.getItem('tanala_user_v11') ? JSON.parse(localStorage.getItem('tanala_user_v11')) : null);
             const [menuOpen, setMenuOpen] = useState(false);
             const [showWallet, setShowWallet] = useState(false);
             const [defaultWalletTab, setDefaultWalletTab] = useState('balance');
+            const [isAdminMode, setIsAdminMode] = useState(false);
 
             const handleLogin = (userData) => {
-                localStorage.setItem('tanala_user_v6', JSON.stringify(userData));
-                setUser(userData);
+                // If it's admin, we just set the user, the component logic inside MenuDrawer will handle showing the admin button
+                if (userData.role === 'admin') {
+                     // We still store admin as user so dashboard renders
+                     setUser(userData);
+                } else {
+                    localStorage.setItem('tanala_user_v11', JSON.stringify(userData));
+                    setUser(userData);
+                }
             };
+            
             const handleLogout = () => {
-                localStorage.removeItem('tanala_user_v6');
+                localStorage.removeItem('tanala_user_v11');
                 setUser(null);
                 setMenuOpen(false);
+                setIsAdminMode(false);
             };
 
             const openWalletWithTab = (tab) => {
@@ -977,13 +917,18 @@
 
             return (
                 <div className="w-full h-full">
-                    <ClickSpark /> {/* GLOBAL SPARK ANIMATION */}
-                    {!user ? (
-                        <AuthScreen onLoginSuccess={handleLogin} />
+                    {!user && !isAdminMode ? (
+                        <AuthScreen onLoginSuccess={handleLogin} onAdminAccess={() => setIsAdminMode(true)} />
+                    ) : isAdminMode ? (
+                        <AdminOverlay onClose={() => setIsAdminMode(false)} onLogout={handleLogout} /> // Using AdminOverlay
                     ) : (
                         <>
-                            <MenuDrawer isOpen={menuOpen} onClose={() => setMenuOpen(false)} user={user} onLogout={handleLogout} onViewWallet={() => openWalletWithTab('balance')} />
+                            <MenuDrawer isOpen={menuOpen} onClose={() => setMenuOpen(false)} user={user} onLogout={handleLogout} onViewWallet={() => openWalletWithTab('balance')} onOpenAdmin={() => { setMenuOpen(false); setIsAdminMode(true); }} />
                             {showWallet && <WalletView user={user} onClose={() => setShowWallet(false)} defaultTab={defaultWalletTab} />}
+                            
+                            {/* Admin Overlay - Shows ON TOP of dashboard when active */}
+                            {isAdminMode && <AdminOverlay onClose={() => setIsAdminMode(false)} onLogout={handleLogout} />}
+                            
                             <Dashboard user={user} wallet={user.balance} handleLogout={handleLogout} toggleMenu={() => setMenuOpen(true)} openWallet={() => openWalletWithTab('balance')} openHistory={() => openWalletWithTab('history')} />
                         </>
                     )}
